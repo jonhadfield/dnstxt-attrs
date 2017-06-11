@@ -12,3 +12,4 @@ matrix:
     - go: 1.7
   allow_failures:
     - go: tip
+
