@@ -1,10 +1,9 @@
 package dta
 
 import (
+	"fmt"
 	"github.com/miekg/dns"
-	"log"
 	"net"
-	"os"
 	"sort"
 	"strconv"
 	"strings"
@@ -29,7 +28,7 @@ type Response struct {
 	Config map[string]string
 }
 
-func getTxtRecord(domain string, nameservers ...NameServer) (txtRecord *dns.Msg) {
+func getTxtRecord(domain string, nameservers ...NameServer) (txtRecord *dns.Msg, err error) {
 	// Sort nameservers by priority
 	sort.Slice(nameservers, func(i, j int) bool { return nameservers[i].Priority < nameservers[j].Priority })
 
@@ -37,18 +36,26 @@ func getTxtRecord(domain string, nameservers ...NameServer) (txtRecord *dns.Msg)
 	m := new(dns.Msg)
 	m.SetQuestion(dns.Fqdn(domain), dns.TypeTXT)
 	m.RecursionDesired = true
-	for _, nameserver := range nameservers {
-		record, _, err := c.Exchange(m, net.JoinHostPort(nameserver.Host, strconv.Itoa(nameserver.Port)))
-		if record == nil {
-			log.Fatalf("*** error: %s\n", err.Error())
-			continue
-		}
-
+	nameserverCount := len(nameservers)
+	for i, nameserver := range nameservers {
+		record, _, _ := c.Exchange(m, net.JoinHostPort(nameserver.Host, strconv.Itoa(nameserver.Port)))
+		// If there was an error
 		if record.Rcode != dns.RcodeSuccess {
-			log.Fatalf(" *** invalid answer name %s after TXT query for %s\n", os.Args[1], os.Args[1])
-			continue
+			// and we're out of name servers to try, return the error
+			if i+1 >= nameserverCount {
+				switch dnsErrString := dns.RcodeToString[record.Rcode]; dnsErrString {
+				case "NXDOMAIN":
+					err = fmt.Errorf("%s not found", domain)
+				default:
+					err = fmt.Errorf("Unknown error looking up: %s", domain)
+				}
+				return
+			} else {
+				continue
+			}
+		} else {
+			return record, err
 		}
-		return record
 	}
 	return
 }
@@ -102,8 +109,10 @@ func processRecord(txtRecord *dns.Msg) (response Response) {
 	return
 }
 
-func (request Request) Get() (response Response) {
-	record := getTxtRecord(request.Domain, request.NameServers...)
-	response = processRecord(record)
+func (request Request) Get() (response Response, err error) {
+	record, err := getTxtRecord(request.Domain, request.NameServers...)
+	if err == nil {
+		response = processRecord(record)
+	}
 	return
 }
