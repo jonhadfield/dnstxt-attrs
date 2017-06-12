@@ -2,6 +2,7 @@ package dta
 
 import (
 	"testing"
+	"strings"
 )
 
 // All tests are numbered based on the order of examples in https://tools.ietf.org/html/rfc1464
@@ -378,8 +379,30 @@ func TestInvalidDomain(t *testing.T) {
 	nameserver := NameServer{Host: "8.8.4.4", Port: 53, Priority: 1}
 	request := Request{Domain: "missing.example.com", NameServers: []NameServer{nameserver}}
 	_, err := request.Get()
-	if err == nil {
-		t.Errorf("Expected missing domain error")
+	if ! strings.Contains(err.Error(), "NXDOMAIN") {
+		t.Errorf("Expected NXDOMAIN error")
 	}
 
+}
+
+func TestInvalidNameServer(t *testing.T) {
+	nameserver := NameServer{Host: "8.8.8.9", Port: 53, Priority: 1}
+	request := Request{Domain: "missing.example.com", NameServers: []NameServer{nameserver}}
+	_, err := request.Get()
+	if ! strings.Contains(string(err.Error()), "timeout") {
+		t.Errorf("Expected timeout error")
+	}
+
+}
+
+func TestSuccessWithSingleInvalidNameServer(t *testing.T) {
+	nameserver1 := NameServer{Host: "8.8.8.9", Port: 53, Priority: 0}
+	nameserver2 := NameServer{Host: "8.8.8.8", Port: 53, Priority: 1}
+	request := Request{Domain: "test10.nooutbound.co.uk", NameServers: []NameServer{nameserver1, nameserver2}}
+	res, _ := request.Get()
+	expected := "abc "
+	if _, ok := res.Config[expected]; ok != true {
+		t.Errorf("Expected attribute: \"%s\"", expected)
+		t.Errorf("Got: %+v", res)
+	}
 }

@@ -38,17 +38,23 @@ func getTxtRecord(domain string, nameservers ...NameServer) (txtRecord *dns.Msg,
 	m.RecursionDesired = true
 	nameserverCount := len(nameservers)
 	for i, nameserver := range nameservers {
-		record, _, _ := c.Exchange(m, net.JoinHostPort(nameserver.Host, strconv.Itoa(nameserver.Port)))
-		// If there was an error
+		record, _, exchangeErr := c.Exchange(m, net.JoinHostPort(nameserver.Host, strconv.Itoa(nameserver.Port)))
+		// If there was a DNS error
+		if exchangeErr != nil {
+			// and we're out of name servers to try, return the error
+			if i+1 >= nameserverCount {
+				err = fmt.Errorf("%s", exchangeErr)
+				return
+			} else {
+				continue
+			}
+		}
+
+		// If there was a record error
 		if record.Rcode != dns.RcodeSuccess {
 			// and we're out of name servers to try, return the error
 			if i+1 >= nameserverCount {
-				switch dnsErrString := dns.RcodeToString[record.Rcode]; dnsErrString {
-				case "NXDOMAIN":
-					err = fmt.Errorf("%s not found", domain)
-				default:
-					err = fmt.Errorf("Unknown error looking up: %s", domain)
-				}
+				err = fmt.Errorf("%s", dns.RcodeToString[record.Rcode])
 				return
 			} else {
 				continue
@@ -103,7 +109,7 @@ func processRecord(txtRecord *dns.Msg) (response Response) {
 			continue
 		}
 		attributeName, valueStart := getAttribute(rawLine)
-		config[attributeName] = processValue(rawLine[valueStart : len(rawLine)-1])
+		config[attributeName] = processValue(rawLine[valueStart: len(rawLine)-1])
 	}
 	response.Config = config
 	return
