@@ -109,7 +109,7 @@ func processRecord(txtRecord *dns.Msg) (response Response) {
 			continue
 		}
 		attributeName, valueStart := getAttribute(rawLine)
-		config[attributeName] = processValue(rawLine[valueStart: len(rawLine)-1])
+		config[attributeName] = processValue(rawLine[valueStart : len(rawLine)-1])
 	}
 	response.Config = config
 	return

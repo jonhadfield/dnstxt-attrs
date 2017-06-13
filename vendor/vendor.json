@@ -1,0 +1,13 @@
+{
+	"comment": "",
+	"ignore": "test",
+	"package": [
+		{
+			"checksumSHA1": "LYb1KNw16kU6m+XOO0o4o58YPnE=",
+			"path": "github.com/miekg/dns",
+			"revision": "e78414ef75607394ad7d917824f07f381df2eafa",
+			"revisionTime": "2017-06-04T12:30:08Z"
+		}
+	],
+	"rootPath": "github.com/jonhadfield/dnstxt-attrs"
+}

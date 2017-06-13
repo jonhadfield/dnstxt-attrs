@@ -1,8 +1,8 @@
 package dta
 
 import (
-	"testing"
 	"strings"
+	"testing"
 )
 
 // All tests are numbered based on the order of examples in https://tools.ietf.org/html/rfc1464
@@ -379,7 +379,7 @@ func TestInvalidDomain(t *testing.T) {
 	nameserver := NameServer{Host: "8.8.4.4", Port: 53, Priority: 1}
 	request := Request{Domain: "missing.example.com", NameServers: []NameServer{nameserver}}
 	_, err := request.Get()
-	if ! strings.Contains(err.Error(), "NXDOMAIN") {
+	if !strings.Contains(err.Error(), "NXDOMAIN") {
 		t.Errorf("Expected NXDOMAIN error")
 	}
 
@@ -389,7 +389,7 @@ func TestInvalidNameServer(t *testing.T) {
 	nameserver := NameServer{Host: "8.8.8.9", Port: 53, Priority: 1}
 	request := Request{Domain: "missing.example.com", NameServers: []NameServer{nameserver}}
 	_, err := request.Get()
-	if ! strings.Contains(string(err.Error()), "timeout") {
+	if !strings.Contains(string(err.Error()), "timeout") {
 		t.Errorf("Expected timeout error")
 	}
 
