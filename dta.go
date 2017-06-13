@@ -104,8 +104,7 @@ func processRecord(txtRecord *dns.Msg) (response Response) {
 	for _, a := range txtRecord.Answer {
 		rawLine := strings.TrimSpace(a.String()[strings.LastIndex(a.String(), txtString)+len(txtString):])
 		// Check '=' exists and isn't first char
-		equalsPos := strings.Index(rawLine, "=")
-		if equalsPos <= 1 {
+		if strings.Index(rawLine, "=") <= 1 {
 			continue
 		}
 		attributeName, valueStart := getAttribute(rawLine)
