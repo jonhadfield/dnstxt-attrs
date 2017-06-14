@@ -5,6 +5,7 @@ go:
   - 1.6
   - 1.7
   - 1.8
+  - tip
 
 allow_failures:
   - go: tip
@@ -17,6 +18,6 @@ script:
 
 env:
   - GO15VENDOREXPERIMENT=1
-  
+
 after_success:
   - bash <(curl -s https://codecov.io/bash)
