@@ -1,13 +1,11 @@
 language: go
 
-matrix:
-  include:
-    - go:
-      - 1.7
-      - 1.8
+- go:
+  - 1.7
+  - 1.8
 
-  allow_failures:
-    - go: tip
+allow_failures:
+  - go: tip
 
 before_install:
   - go get -t -v ./...
