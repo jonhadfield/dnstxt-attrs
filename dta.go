@@ -38,7 +38,6 @@ func (a PrioritySorter) Less(i, j int) bool { return a[i].Priority < a[j].Priori
 
 func NewRequest(domain string, ns ...NameServer) (req request) {
 	// Sort nameservers by priority
-	//sort.Slice(ns, func(i, j int) bool { return ns[i].Priority < ns[j].Priority })
 	sort.Sort(PrioritySorter(ns))
 	req = request{domain, ns}
 	return
