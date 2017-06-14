@@ -1,12 +1,12 @@
 package dta
 
 import (
+	"fmt"
 	"github.com/miekg/dns"
 	"net"
 	"sort"
 	"strconv"
 	"strings"
-	"fmt"
 )
 
 const (
@@ -19,6 +19,8 @@ type NameServer struct {
 	Port     int
 }
 
+type NameServers []NameServer
+
 type request struct {
 	Domain      string
 	NameServers []NameServer
@@ -28,9 +30,16 @@ type Response struct {
 	Config map[string]string
 }
 
+type PrioritySorter []NameServer
+
+func (a PrioritySorter) Len() int           { return len(a) }
+func (a PrioritySorter) Swap(i, j int)      { a[i], a[j] = a[j], a[i] }
+func (a PrioritySorter) Less(i, j int) bool { return a[i].Priority < a[j].Priority }
+
 func NewRequest(domain string, ns ...NameServer) (req request) {
 	// Sort nameservers by priority
-	sort.Slice(ns, func(i, j int) bool { return ns[i].Priority < ns[j].Priority })
+	//sort.Slice(ns, func(i, j int) bool { return ns[i].Priority < ns[j].Priority })
+	sort.Sort(PrioritySorter(ns))
 	req = request{domain, ns}
 	return
 }
