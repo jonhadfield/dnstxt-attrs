@@ -209,7 +209,7 @@ func TestProcessValue10(t *testing.T) {
 
 func TestFull1(t *testing.T) {
 	nameserver := NameServer{Host: "8.8.4.4", Port: 53, Priority: 0}
-	request := Request{Domain: "test1.nooutbound.co.uk", NameServers: []NameServer{nameserver}}
+	request := NewRequest("test1.nooutbound.co.uk", nameserver)
 	res, _ := request.Get()
 	expectedAttr := "color"
 	expectedVal := "blue"
@@ -226,7 +226,7 @@ func TestFull1(t *testing.T) {
 
 func TestFull2(t *testing.T) {
 	nameserver := NameServer{Host: "8.8.4.4", Port: 53, Priority: 0}
-	request := Request{Domain: "test2.nooutbound.co.uk", NameServers: []NameServer{nameserver}}
+	request := NewRequest("test2.nooutbound.co.uk", nameserver)
 	res, _ := request.Get()
 	expectedAttr := "equation"
 	expectedVal := "a=4"
@@ -243,7 +243,7 @@ func TestFull2(t *testing.T) {
 
 func TestFull3(t *testing.T) {
 	nameserver := NameServer{Host: "8.8.4.4", Port: 53, Priority: 0}
-	request := Request{Domain: "test3.nooutbound.co.uk", NameServers: []NameServer{nameserver}}
+	request := NewRequest("test3.nooutbound.co.uk", nameserver)
 	res, _ := request.Get()
 	expectedAttr := "a=a"
 	expectedVal := "true"
@@ -262,7 +262,7 @@ func TestFull3(t *testing.T) {
 
 //func TestFull4(t *testing.T) {
 //	nameserver := NameServer{Host:"8.8.4.4", Port:53, Priority:}
-//	request := Request{Domain:"test4.nooutbound.co.uk", NameServers:[]NameServer{nameserver}}
+//	request := Request{Domain:"test4.nooutbound.co.uk", NameServers:nameserver}
 //	res := request.Get()
 //	expectedAttr := "a\\=a false"
 //	expectedVal  := "a\\`=a=false"
@@ -279,7 +279,7 @@ func TestFull3(t *testing.T) {
 //
 //func TestFull5(t *testing.T) {
 //	nameserver := NameServer{Host:"8.8.4.4", Port:53, Priority:}
-//	request := Request{Domain:"test5.nooutbound.co.uk", NameServers:[]NameServer{nameserver}}
+//	request := Request{Domain:"test5.nooutbound.co.uk", NameServers:nameserver}
 //	res := request.Get()
 //	expectedAttr := "="
 //	expectedVal  := "\\="
@@ -296,7 +296,7 @@ func TestFull3(t *testing.T) {
 //
 //func TestFull6(t *testing.T) {
 //	nameserver := NameServer{Host:"8.8.4.4", Port:53, Priority:}
-//	request := Request{Domain:"test6.nooutbound.co.uk", NameServers:[]NameServer{nameserver}}
+//	request := Request{Domain:"test6.nooutbound.co.uk", NameServers:nameserver}
 //	res := request.Get()
 //	expectedAttr := "string"
 //	expectedVal  := "\"Cat\""
@@ -313,7 +313,7 @@ func TestFull3(t *testing.T) {
 
 func TestFull7(t *testing.T) {
 	nameserver := NameServer{Host: "8.8.4.4", Port: 53, Priority: 0}
-	request := Request{Domain: "test7.nooutbound.co.uk", NameServers: []NameServer{nameserver}}
+	request := NewRequest("test7.nooutbound.co.uk", nameserver)
 	res, _ := request.Get()
 	expectedAttr := "string2"
 	expectedVal := "``abc``"
@@ -330,7 +330,7 @@ func TestFull7(t *testing.T) {
 
 func TestFull8(t *testing.T) {
 	nameserver := NameServer{Host: "8.8.4.4", Port: 53, Priority: 0}
-	request := Request{Domain: "test8.nooutbound.co.uk", NameServers: []NameServer{nameserver}}
+	request := NewRequest("test8.nooutbound.co.uk", nameserver)
 	res, _ := request.Get()
 	expectedAttr := "novalue"
 	expectedVal := ""
@@ -346,9 +346,8 @@ func TestFull8(t *testing.T) {
 }
 
 func TestFull9(t *testing.T) {
-	nameserver1 := NameServer{Host: "8.8.4.4", Port: 53, Priority: 1}
-	nameserver2 := NameServer{Host: "8.8.8.8", Port: 53, Priority: 0}
-	request := Request{Domain: "test9.nooutbound.co.uk", NameServers: []NameServer{nameserver1, nameserver2}}
+	nameserver := NameServer{Host: "8.8.4.4", Port: 53, Priority: 0}
+	request := NewRequest("test9.nooutbound.co.uk", nameserver)
 	res, _ := request.Get()
 	expectedAttr := "a b"
 	expectedVal := "c d"
@@ -364,9 +363,8 @@ func TestFull9(t *testing.T) {
 }
 
 func TestFull10(t *testing.T) {
-	nameserver1 := NameServer{Host: "8.8.4.4", Port: 53, Priority: 1}
-	nameserver2 := NameServer{Host: "8.8.8.8", Port: 53, Priority: 0}
-	request := Request{Domain: "test10.nooutbound.co.uk", NameServers: []NameServer{nameserver1, nameserver2}}
+	nameserver := NameServer{Host: "8.8.4.4", Port: 53, Priority: 0}
+	request := NewRequest("test10.nooutbound.co.uk", nameserver)
 	res, _ := request.Get()
 	expected := "abc "
 	if _, ok := res.Config[expected]; ok != true {
@@ -376,18 +374,17 @@ func TestFull10(t *testing.T) {
 }
 
 func TestInvalidDomain(t *testing.T) {
-	nameserver := NameServer{Host: "8.8.4.4", Port: 53, Priority: 1}
-	request := Request{Domain: "missing.example.com", NameServers: []NameServer{nameserver}}
+	nameserver := NameServer{Host: "8.8.4.4", Port: 53, Priority: 0}
+	request := NewRequest("missing.example.com", nameserver)
 	_, err := request.Get()
 	if !strings.Contains(err.Error(), "NXDOMAIN") {
 		t.Errorf("Expected NXDOMAIN error")
 	}
-
 }
 
 func TestInvalidNameServer(t *testing.T) {
-	nameserver := NameServer{Host: "8.8.8.9", Port: 53, Priority: 1}
-	request := Request{Domain: "missing.example.com", NameServers: []NameServer{nameserver}}
+	nameserver := NameServer{Host: "1.2.3.4", Port: 53, Priority: 0}
+	request := NewRequest("www.google.com", nameserver)
 	_, err := request.Get()
 	if !strings.Contains(string(err.Error()), "timeout") {
 		t.Errorf("Expected timeout error")
@@ -398,11 +395,28 @@ func TestInvalidNameServer(t *testing.T) {
 func TestSuccessWithSingleInvalidNameServer(t *testing.T) {
 	nameserver1 := NameServer{Host: "8.8.8.9", Port: 53, Priority: 0}
 	nameserver2 := NameServer{Host: "8.8.8.8", Port: 53, Priority: 1}
-	request := Request{Domain: "test10.nooutbound.co.uk", NameServers: []NameServer{nameserver1, nameserver2}}
+	nameservers := []NameServer{nameserver1, nameserver2}
+	request := NewRequest("test10.nooutbound.co.uk", nameservers...)
 	res, _ := request.Get()
 	expected := "abc "
 	if _, ok := res.Config[expected]; ok != true {
 		t.Errorf("Expected attribute: \"%s\"", expected)
 		t.Errorf("Got: %+v", res)
+	}
+}
+
+func TestNameServerSorting(t *testing.T) {
+	nameservers := [6]NameServer{}
+	nameservers[0] = NameServer{Host: "1.2.3.5", Port: 53, Priority: 0}
+	nameservers[1] = NameServer{Host: "1.2.3.7", Port: 53, Priority: 4}
+	nameservers[2] = NameServer{Host: "1.2.3.8", Port: 53, Priority: 2}
+	nameservers[3] = NameServer{Host: "1.2.3.6", Port: 53, Priority: 3}
+	nameservers[4] = NameServer{Host: "1.2.3.4", Port: 53, Priority: 1}
+	nameservers[5] = NameServer{Host: "1.2.3.9", Port: 53, Priority: 5}
+	req := NewRequest("example.com", nameservers[:]...)
+	for i, nameserver := range req.NameServers {
+		if i != nameserver.Priority {
+			t.Errorf("Expected nameserver priority: %d got: %d", i, nameserver.Priority)
+		}
 	}
 }

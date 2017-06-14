@@ -1,12 +1,12 @@
 package dta
 
 import (
-	"fmt"
 	"github.com/miekg/dns"
 	"net"
 	"sort"
 	"strconv"
 	"strings"
+	"fmt"
 )
 
 const (
@@ -19,7 +19,7 @@ type NameServer struct {
 	Port     int
 }
 
-type Request struct {
+type request struct {
 	Domain      string
 	NameServers []NameServer
 }
@@ -28,10 +28,14 @@ type Response struct {
 	Config map[string]string
 }
 
-func getTxtRecord(domain string, nameservers ...NameServer) (txtRecord *dns.Msg, err error) {
+func NewRequest(domain string, ns ...NameServer) (req request) {
 	// Sort nameservers by priority
-	sort.Slice(nameservers, func(i, j int) bool { return nameservers[i].Priority < nameservers[j].Priority })
+	sort.Slice(ns, func(i, j int) bool { return ns[i].Priority < ns[j].Priority })
+	req = request{domain, ns}
+	return
+}
 
+func getTxtRecord(domain string, nameservers ...NameServer) (txtRecord *dns.Msg, err error) {
 	c := new(dns.Client)
 	m := new(dns.Msg)
 	m.SetQuestion(dns.Fqdn(domain), dns.TypeTXT)
@@ -114,8 +118,8 @@ func processRecord(txtRecord *dns.Msg) (response Response) {
 	return
 }
 
-func (request Request) Get() (response Response, err error) {
-	record, err := getTxtRecord(request.Domain, request.NameServers...)
+func (req request) Get() (response Response, err error) {
+	record, err := getTxtRecord(req.Domain, req.NameServers...)
 	if err == nil {
 		response = processRecord(record)
 	}
