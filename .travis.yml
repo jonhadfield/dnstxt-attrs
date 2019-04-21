@@ -1,23 +1,34 @@
 language: go
 
 go:
-  - 1.5
-  - 1.6
-  - 1.7
-  - 1.8
+  - 1.11.x
+  - 1.12.x
   - tip
+
+os:
+  - linux
+  - osx
 
 allow_failures:
   - go: tip
 
-before_install:
-  - go get -t -v ./...
 
-script:
-  - go test -race -coverprofile=coverage.txt -covermode=atomic
+sudo: false
+
+before_install:
+  - go get github.com/axw/gocov/gocov
+  - go get github.com/mattn/goveralls
+  - if ! go get github.com/golang/tools/cmd/cover; then go get golang.org/x/tools/cmd/cover; fi
+
+install: true
 
 env:
-  - GO15VENDOREXPERIMENT=1
+  - GO111MODULE=on
+
+script:
+  - go build
+  - go test
+  - $GOPATH/bin/goveralls -service=travis-ci
 
 after_success:
   - bash <(curl -s https://codecov.io/bash)
