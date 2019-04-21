@@ -12,7 +12,6 @@ os:
 allow_failures:
   - go: tip
 
-
 sudo: false
 
 before_install:
