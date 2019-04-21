@@ -2,11 +2,12 @@ package dta
 
 import (
 	"fmt"
-	"github.com/miekg/dns"
 	"net"
 	"sort"
 	"strconv"
 	"strings"
+
+	"github.com/miekg/dns"
 )
 
 const (
