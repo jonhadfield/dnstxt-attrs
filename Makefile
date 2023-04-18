@@ -16,6 +16,9 @@ cover: test
 fmt:
 	goimports -w .
 
+find-updates:
+	go list -u -m -json all | go-mod-outdated -update -direct
+
 lint:
 	golangci-lint run --enable-all --disable lll
 
