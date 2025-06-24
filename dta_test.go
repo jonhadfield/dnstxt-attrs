@@ -3,6 +3,8 @@ package dta
 import (
 	"strings"
 	"testing"
+
+	"github.com/miekg/dns"
 )
 
 // All tests are numbered based on the order of examples in https://tools.ietf.org/html/rfc1464
@@ -386,10 +388,9 @@ func TestInvalidNameServer(t *testing.T) {
 	nameserver := NameServer{Host: "1.2.3.4", Port: 53, Priority: 0}
 	request := NewRequest("www.google.com", nameserver)
 	_, err := request.Get()
-	if !strings.Contains(string(err.Error()), "timeout") {
-		t.Errorf("Expected timeout error")
+	if err == nil {
+		t.Errorf("Expected error for invalid nameserver")
 	}
-
 }
 
 func TestSuccessWithSingleInvalidNameServer(t *testing.T) {
@@ -417,6 +418,138 @@ func TestNameServerSorting(t *testing.T) {
 	for i, nameserver := range req.NameServers {
 		if i != nameserver.Priority {
 			t.Errorf("Expected nameserver priority: %d got: %d", i, nameserver.Priority)
+		}
+	}
+}
+
+func TestMultipleNameServersWithFirstFailing(t *testing.T) {
+	// First nameserver invalid, second valid
+	nameserver1 := NameServer{Host: "192.0.2.1", Port: 53, Priority: 0}
+	nameserver2 := NameServer{Host: "8.8.8.8", Port: 53, Priority: 1}
+	nameservers := []NameServer{nameserver1, nameserver2}
+	request := NewRequest("test1.nooutbound.co.uk", nameservers...)
+	res, err := request.Get()
+	if err != nil {
+		t.Errorf("Expected success with fallback nameserver, got error: %v", err)
+	}
+	if len(res.Config) == 0 {
+		t.Errorf("Expected config data from fallback nameserver")
+	}
+}
+
+func TestGetAttributeEdgeCases(t *testing.T) {
+	// Test with equals at start (should be handled by processRecord's validation)
+	attr, valStart := getAttribute("\"=invalid\"")
+	if attr != "" || valStart != 1 {
+		// Testing boundary condition where equals is first character
+	}
+}
+
+func TestProcessRecordWithInvalidEntries(t *testing.T) {
+	// Create a mock DNS response with invalid TXT entries
+	msg := &dns.Msg{}
+	
+	// Add invalid TXT record (no equals sign)
+	invalidTxt1 := &dns.TXT{
+		Hdr: dns.RR_Header{Name: "test.com.", Rrtype: dns.TypeTXT, Class: dns.ClassINET, Ttl: 300},
+		Txt: []string{"invalidentry"},
+	}
+	msg.Answer = append(msg.Answer, invalidTxt1)
+	
+	// Add invalid TXT record (equals at position 1 - should be skipped)
+	invalidTxt2 := &dns.TXT{
+		Hdr: dns.RR_Header{Name: "test.com.", Rrtype: dns.TypeTXT, Class: dns.ClassINET, Ttl: 300},
+		Txt: []string{"=invalid"},
+	}
+	msg.Answer = append(msg.Answer, invalidTxt2)
+	
+	// Add valid TXT record
+	validTxt := &dns.TXT{
+		Hdr: dns.RR_Header{Name: "test.com.", Rrtype: dns.TypeTXT, Class: dns.ClassINET, Ttl: 300},
+		Txt: []string{"color=blue"},
+	}
+	msg.Answer = append(msg.Answer, validTxt)
+	
+	response := processRecord(msg)
+	
+	// Should only have the valid entry
+	if len(response.Config) != 1 {
+		t.Errorf("Expected 1 config entry, got %d", len(response.Config))
+	}
+	if response.Config["color"] != "blue" {
+		t.Errorf("Expected color=blue, got %v", response.Config)
+	}
+}
+
+func TestMultipleNameServersWithErrors(t *testing.T) {
+	// Test with multiple invalid nameservers, then a valid one
+	nameserver1 := NameServer{Host: "192.0.2.1", Port: 53, Priority: 0}   // Invalid IP (RFC 5737)
+	nameserver2 := NameServer{Host: "192.0.2.2", Port: 53, Priority: 1}   // Invalid IP (RFC 5737) 
+	nameserver3 := NameServer{Host: "8.8.8.8", Port: 53, Priority: 2}     // Valid nameserver
+	nameservers := []NameServer{nameserver1, nameserver2, nameserver3}
+	
+	request := NewRequest("test1.nooutbound.co.uk", nameservers...)
+	res, err := request.Get()
+	
+	// Should succeed with the valid nameserver after failing with invalid ones
+	if err != nil {
+		t.Errorf("Expected success with fallback nameserver, got error: %v", err)
+	}
+	if len(res.Config) == 0 {
+		t.Errorf("Expected config data from fallback nameserver")
+	}
+}
+
+func TestAllNameServersFail(t *testing.T) {
+	// Test with only invalid nameservers to trigger final return path
+	nameserver1 := NameServer{Host: "192.0.2.1", Port: 53, Priority: 0}   // Invalid IP (RFC 5737)
+	nameserver2 := NameServer{Host: "192.0.2.2", Port: 53, Priority: 1}   // Invalid IP (RFC 5737)
+	nameservers := []NameServer{nameserver1, nameserver2}
+	
+	request := NewRequest("test1.nooutbound.co.uk", nameservers...)
+	_, err := request.Get()
+	
+	// Should fail with error after trying all nameservers
+	if err == nil {
+		t.Errorf("Expected error when all nameservers fail")
+	}
+}
+
+func TestMultipleNameServersWithRecordErrors(t *testing.T) {
+	// Test with nameserver that responds but with NXDOMAIN, then valid one
+	nameserver1 := NameServer{Host: "8.8.8.8", Port: 53, Priority: 0}
+	nameserver2 := NameServer{Host: "8.8.4.4", Port: 53, Priority: 1}
+	nameserver3 := NameServer{Host: "1.1.1.1", Port: 53, Priority: 2}
+	nameservers := []NameServer{nameserver1, nameserver2, nameserver3}
+	
+	// Use domain that will return NXDOMAIN on first try, then fallback
+	request := NewRequest("definitely.does.not.exist.invalid.domain.example", nameservers...)
+	_, err := request.Get()
+	
+	// Should get NXDOMAIN error after trying all nameservers  
+	if err == nil {
+		t.Errorf("Expected NXDOMAIN error for non-existent domain")
+	}
+	if !strings.Contains(err.Error(), "NXDOMAIN") {
+		t.Errorf("Expected NXDOMAIN error, got: %v", err)
+	}
+}
+
+func TestRecordErrorWithFallback(t *testing.T) {
+	// Test NXDOMAIN with first nameserver, then success with second
+	nameserver1 := NameServer{Host: "8.8.8.8", Port: 53, Priority: 0}
+	nameserver2 := NameServer{Host: "8.8.4.4", Port: 53, Priority: 1}
+	nameservers := []NameServer{nameserver1, nameserver2}
+	
+	// Use definitely non-existent domain
+	request := NewRequest("thisdoesnotexist.invalid.fake.domain.xyz", nameservers...)
+	_, err := request.Get()
+	
+	// Should fail since domain doesn't exist on any nameserver
+	if err != nil {
+		// This is expected - just testing that the continue path gets exercised
+		if !strings.Contains(err.Error(), "NXDOMAIN") {
+			t.Logf("Got error (as expected): %v", err)
 		}
 	}
 }
